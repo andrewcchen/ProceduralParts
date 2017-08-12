@@ -401,8 +401,7 @@ namespace ProceduralParts
             }
 
             // Update the resources list.
-            if (typeChanged || !UpdateResources())
-                RebuildResources(keepAmount);
+            RebuildResources(keepAmount);
 
             if (tankVolumeName != null)
             {
@@ -442,53 +441,6 @@ namespace ProceduralParts
             }
         }
 
-        private bool UpdateResources()
-        {
-            // Hopefully we can just fiddle with the existing part resources.
-            // This saves having to make the window dirty, which breaks dragging on sliders.
-            if (part.Resources.Count != selectedTankType.resources.Count)
-            {
-                Debug.LogWarning("*TCS* Selected and existing resource counts differ");
-                return false;
-            }
-
-            for (int i = 0; i < part.Resources.Count; ++i)
-            {
-                PartResource partRes = part.Resources[i];
-                TankResource tankRes = selectedTankType.resources[i];
-
-                if (partRes.resourceName != tankRes.name)
-                {
-                    Debug.LogWarning("*TCS* Selected and existing resource names differ");
-                    return false;
-                }
-
-                //double maxAmount = (float)Math.Round(tankRes.unitsConst + tankVolume * tankRes.unitsPerKL + mass * tankRes.unitsPerT, 2);
-                double maxAmount = CalculateMaxResourceAmount(tankRes);
-
-                // ReSharper disable CompareOfFloatsByEqualityOperator
-                if (partRes.maxAmount == maxAmount)
-                    continue;
-
-                if (tankRes.forceEmpty)
-                    partRes.amount = 0;
-                else if (partRes.maxAmount == 0)
-                    partRes.amount = maxAmount;
-                else
-                {
-                    SIPrefix pfx = maxAmount.GetSIPrefix();
-                    partRes.amount = pfx.Round(partRes.amount * maxAmount / partRes.maxAmount, 4);
-                }
-                partRes.maxAmount = maxAmount;
-                // ReSharper restore CompareOfFloatsByEqualityOperator
-
-                MaxAmountChanged(part, partRes, partRes.maxAmount);
-                InitialAmountChanged(part, partRes, partRes.amount);
-            }
-
-            return true;
-        }
-
         private double CalculateMaxResourceAmount(TankResource res)
         {
             double shapeMultiplier = 0;
@@ -519,8 +471,6 @@ namespace ProceduralParts
             part.Resources.dict.Clear();
 
             // Build them afresh. This way we don't need to do all the messing around with reflection
-            // The downside is the UIPartActionWindow gets maked dirty and rebuit, so you can't use 
-            // the sliders that affect part contents properly cos they get recreated underneith you and the drag dies.
             foreach (TankResource res in selectedTankType.resources)
             {
                 //double maxAmount = Math.Round(res.unitsConst + tankVolume * res.unitsPerKL + part.mass * res.unitsPerT, 2);
