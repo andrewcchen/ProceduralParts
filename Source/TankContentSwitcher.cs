@@ -172,7 +172,7 @@ namespace ProceduralParts
 			//Debug.Log ((float)volume);
 			volumeDisplay = volume.ToStringSI(4, 3, "L");
 
-            UpdateMassAndResources(false);
+            UpdateMassAndResources(false, keepResources: true);
             if (HighLogic.LoadedSceneIsEditor)
                 GameEvents.onEditorShipModified.Fire(EditorLogic.fetch.ship);
         }
@@ -384,7 +384,9 @@ namespace ProceduralParts
 			part.SendEvent ("OnResourceInitialChanged", data, 0);
 		}
 
-        private void UpdateMassAndResources(bool typeChanged, bool keepAmount = false) // keep amount when rebuild (for saved part loading)
+        private void UpdateMassAndResources(bool typeChanged,
+                                            bool keepAmount = false, // keep amount when rebuild (for saved part loading)
+                                            bool keepResources = false)
         {
             // Wait for the first update...
             if (selectedTankType == null)
@@ -401,7 +403,7 @@ namespace ProceduralParts
             }
 
             // Update the resources list.
-            RebuildResources(keepAmount);
+            RebuildResources(keepAmount, keepResources);
 
             if (tankVolumeName != null)
             {
@@ -452,7 +454,7 @@ namespace ProceduralParts
             return Math.Round((res.unitsConst + tankVolume * res.unitsPerKL + mass * res.unitsPerT) * shapeMultiplier, 2);
         }
 
-        private void RebuildResources(bool keepAmount = false)
+        private void RebuildResources(bool keepAmount = false, bool keepResources = false)
         {
             List<PartResource> partResources = new List<PartResource>();
 
@@ -468,7 +470,13 @@ namespace ProceduralParts
                 }
             }
 
-            part.Resources.dict.Clear();
+            if (!keepResources)
+                part.Resources.dict.Clear();
+            else
+            {
+                foreach (PartResource res in partResources)
+                    part.Resources.Remove(res);
+            }
 
             // Build them afresh. This way we don't need to do all the messing around with reflection
             foreach (TankResource res in selectedTankType.resources)
